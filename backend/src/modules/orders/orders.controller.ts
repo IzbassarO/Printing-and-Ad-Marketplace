@@ -1,10 +1,19 @@
-import { Controller, Get, Param, ParseIntPipe, Patch, Post, Body } from '@nestjs/common';
+// src/modules/orders/orders.controller.ts
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { AssignVendorDto, ChangeStatusDto, CreateOrderDto } from './dto';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private orders: OrdersService) {}
+  constructor(private readonly orders: OrdersService) {}
 
   @Post()
   create(@Body() dto: CreateOrderDto) {
@@ -21,7 +30,7 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AssignVendorDto,
   ) {
-    return this.orders.assignVendor(id, dto.vendorId, dto.changedBy);
+    return this.orders.assignVendor(id, dto.vendorId, dto.changedByUserId, dto.note);
   }
 
   @Patch(':id/status')
@@ -29,6 +38,6 @@ export class OrdersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ChangeStatusDto,
   ) {
-    return this.orders.changeStatus(id, dto.status, dto.changedBy);
+    return this.orders.changeStatus(id, dto.status, dto.changedByUserId, dto.note);
   }
 }

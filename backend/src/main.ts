@@ -8,6 +8,9 @@ console.log('VendorScalarFieldEnum:', Prisma.VendorScalarFieldEnum);
 console.log('OrderScalarFieldEnum:', Prisma.OrderScalarFieldEnum);
 console.log('UserScalarFieldEnum:', Prisma.UserScalarFieldEnum);
 
+console.log('OrderScalarFieldEnum:', Prisma.OrderScalarFieldEnum);
+console.log('Order fields:', Object.keys(Prisma.OrderScalarFieldEnum));
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 

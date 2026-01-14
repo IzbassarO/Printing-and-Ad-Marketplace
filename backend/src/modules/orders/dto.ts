@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
+import { OrderStatus } from '@prisma/client';
 
 export class CreateOrderDto {
   @Type(() => Number)
@@ -11,7 +12,7 @@ export class CreateOrderDto {
   serviceId!: number;
 
   @IsObject()
-  params!: Record<string, any>;
+  paramsJson!: Record<string, any>;
 
   @Type(() => Number)
   @IsInt()
@@ -27,6 +28,10 @@ export class CreateOrderDto {
   @IsInt()
   @Min(0)
   total!: number;
+
+  @IsOptional()
+  @IsDateString()
+  dueAt?: string;
 }
 
 export class AssignVendorDto {
@@ -34,15 +39,18 @@ export class AssignVendorDto {
   @IsInt()
   vendorId!: number;
 
-  // кто назначил (потом будет из JWT)
   @Type(() => Number)
   @IsInt()
-  changedBy!: number;
+  changedByUserId!: number;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
 
 export class ChangeStatusDto {
-  @IsString()
-  status!: string;
+  @IsEnum(OrderStatus)
+  status!: OrderStatus;
 
   @IsOptional()
   @IsString()
@@ -50,5 +58,5 @@ export class ChangeStatusDto {
 
   @Type(() => Number)
   @IsInt()
-  changedBy!: number;
+  changedByUserId!: number;
 }
