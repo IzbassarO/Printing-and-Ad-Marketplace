@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL") // pooler
+  directUrl = env("DIRECT_URL")   // non-pool
+}
+
+enum UserRole {
+  CLIENT
+  VENDOR
+  ADMIN
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      UserRole
+  vendorId  Int?
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id])
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Vendor {
+  id        Int      @id @default(autoincrement())
+  name      String
+  isActive  Boolean  @default(true)
+  users     User[]
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id       Int     @id @default(autoincrement())
+  name     String
+  isActive Boolean @default(true)
+
+  orders Order[]
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  vendorId   Int?
+  serviceId  Int
+  params     Json
+  subtotal   Int
+  commission Int
+  total      Int
+  status     String
+  createdAt  DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  vendor  Vendor? @relation(fields: [vendorId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  history OrderStatusHistory[]
+}
+
+model OrderStatusHistory {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  status    String
+  changedBy Int
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
