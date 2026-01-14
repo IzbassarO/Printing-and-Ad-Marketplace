@@ -1,4 +1,3 @@
-// src/modules/vendors/vendors.controller.ts
 import { Body, Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { VendorsService } from './vendors.service';
 import { CreateVendorDto } from './dto';

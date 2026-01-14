@@ -1,44 +1,49 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { IsEmail, IsOptional, IsString, IsInt, MinLength } from 'class-validator';
-import { Type } from 'class-transformer';
 import { UserRole } from '@prisma/client';
+import { IsEnum, IsInt, IsOptional, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 
-class CreateUserDto {
-  @IsString()
-  name!: string;
-
+class ListUsersQuery {
   @IsOptional()
-  @IsString()
-  phone?: string;
-
-  @IsEmail()
-  email!: string;
-
-  @IsString()
-  @MinLength(6)
-  password!: string;
-
-  @IsOptional()
+  @IsEnum(UserRole)
   role?: UserRole;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   vendorId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  take?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  skip?: number;
 }
 
+/**
+ * NOTE:
+ * Эти endpoints в MVP обычно должны быть ADMIN-only (позже добавим Guards).
+ * Сейчас тут только безопасные поля (passwordHash никогда не возвращаем).
+ */
 @Controller('users')
 export class UsersController {
   constructor(private users: UsersService) {}
 
   @Get()
-  getByEmail(@Query('email') email: string) {
-    return this.users.findByEmail(email);
+  list(@Query() q: ListUsersQuery) {
+    return this.users.list(q);
   }
 
-  @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.users.create(dto);
+  @Get(':id')
+  get(@Param('id', ParseIntPipe) id: number) {
+    return this.users.getById(id);
   }
 }
