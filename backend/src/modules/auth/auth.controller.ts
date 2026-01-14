@@ -15,4 +15,12 @@ export class AuthController {
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto.email, dto.password);
   }
+
+  // ✅ по ТЗ
+  @Post('logout')
+  logout() {
+    // На MVP: клиент просто удаляет токен.
+    // Позже: refresh tokens + blacklist/rotation.
+    return this.auth.logout();
+  }
 }

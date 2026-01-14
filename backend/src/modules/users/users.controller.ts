@@ -1,14 +1,22 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { IsEmail, IsOptional, IsString, IsInt } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsInt, MinLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole } from '@prisma/client';
 
 class CreateUserDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
   @IsEmail()
   email!: string;
 
   @IsString()
+  @MinLength(6)
   password!: string;
 
   @IsOptional()

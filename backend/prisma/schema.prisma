@@ -1,17 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url = env("DATABASE_URL") // pooler
-  directUrl = env("DIRECT_URL")   // non-pool
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooler (runtime)
+  directUrl = env("DIRECT_URL")   // direct (migrations)
 }
 
 enum UserRole {
@@ -20,59 +16,243 @@ enum UserRole {
   ADMIN
 }
 
+enum ServiceOptionType {
+  SELECT
+  NUMBER
+  BOOLEAN
+}
+
+enum OrderStatus {
+  NEW
+  ASSIGNED
+  QUOTE_SENT
+  IN_PROGRESS
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      UserRole
-  vendorId  Int?
-  vendor    Vendor?  @relation(fields: [vendorId], references: [id])
-  orders    Order[]
-  createdAt DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  name         String
+  phone        String?
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+
+  vendorId     Int?     @map("vendor_id")
+  vendor       Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  // relations (admin/vendor actions)
+  priceRulesUpdated PriceRule[]         @relation("PriceRulesUpdatedBy")
+  statusChanges     OrderStatusHistory[] @relation("StatusChangedBy")
+  uploadedFiles     OrderFile[]          @relation("FileUploadedBy")
+  offersDecided     OrderOffer[]         @relation("OfferDecidedBy")
+
+  // relations (client)
+  orders Order[] @relation("UserOrders")
+
+  // relations (comments)
+  comments OrderComment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+  @@index([vendorId], map: "idx_users_vendor_id")
+  @@index([role], map: "idx_users_role")
 }
 
 model Vendor {
-  id        Int      @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   name      String
-  isActive  Boolean  @default(true)
-  users     User[]
-  orders    Order[]
-  createdAt DateTime @default(now())
+  legalName String  @map("legal_name")
+  binIin    String? @map("bin_iin")
+  contacts  Json
+  isActive  Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // relations
+  users  User[]
+  orders Order[]
+  offers OrderOffer[]
+
+  @@map("vendors")
+  @@index([isActive], map: "idx_vendors_is_active")
 }
 
 model Service {
-  id       Int     @id @default(autoincrement())
-  name     String
-  isActive Boolean @default(true)
+  id          Int     @id @default(autoincrement())
+  category    String
+  name        String
+  description String?
+  isActive    Boolean @default(true) @map("is_active")
 
-  orders Order[]
+  // relations
+  options    ServiceOption[]
+  priceRules PriceRule[]
+  orders     Order[]
+
+  @@map("services")
+  @@index([category], map: "idx_services_category")
+  @@index([isActive], map: "idx_services_is_active")
+}
+
+model ServiceOption {
+  id         Int               @id @default(autoincrement())
+  serviceId  Int               @map("service_id")
+  optionName String            @map("option_name")
+  optionType ServiceOptionType @map("option_type")
+  valuesJson Json?             @map("values_json")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@map("service_options")
+  @@index([serviceId], map: "idx_service_options_service_id")
+  @@unique([serviceId, optionName], map: "uq_service_options_service_id_option_name")
+}
+
+model PriceRule {
+  id        Int   @id @default(autoincrement())
+  serviceId Int   @map("service_id")
+  rulesJson Json  @map("rules_json")
+  updatedBy Int   @map("updated_by")
+
+  // versioning (prod-ready)
+  version   Int     @default(1)
+  isActive  Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  service       Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  updatedByUser User    @relation("PriceRulesUpdatedBy", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("price_rules")
+  @@index([serviceId], map: "idx_price_rules_service_id")
+  @@index([isActive], map: "idx_price_rules_is_active")
+  @@unique([serviceId, version], map: "uq_price_rules_service_id_version")
 }
 
 model Order {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  vendorId   Int?
-  serviceId  Int
-  params     Json
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  vendorId  Int?     @map("vendor_id") // nullable до назначения
+  serviceId Int      @map("service_id")
+
+  paramsJson Json @map("params_json")
+
+  // деньги (тенге)
   subtotal   Int
   commission Int
   total      Int
-  status     String
-  createdAt  DateTime @default(now())
 
-  user    User    @relation(fields: [userId], references: [id])
-  vendor  Vendor? @relation(fields: [vendorId], references: [id])
-  service Service @relation(fields: [serviceId], references: [id])
+  // обещанный срок готовности (снапшот)
+  dueAt DateTime? @map("due_at")
+
+  status    OrderStatus @default(NEW)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // relations
+  user    User    @relation("UserOrders", fields: [userId], references: [id], onDelete: Restrict)
+  vendor  Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
 
   history OrderStatusHistory[]
+  files   OrderFile[]
+  comments OrderComment[]
+  offers  OrderOffer[]
+
+  @@map("orders")
+  @@index([userId], map: "idx_orders_user_id")
+  @@index([vendorId], map: "idx_orders_vendor_id")
+  @@index([serviceId], map: "idx_orders_service_id")
+  @@index([status], map: "idx_orders_status")
+  @@index([createdAt], map: "idx_orders_created_at")
+}
+
+model OrderOffer {
+  id      Int @id @default(autoincrement())
+  orderId Int @map("order_id")
+  vendorId Int @map("vendor_id")
+
+  // суммы (тенге) — снапшот предложения
+  subtotal   Int
+  commission Int
+  total      Int
+
+  // срок по офферу
+  dueAt DateTime? @map("due_at")
+
+  note   String?
+  status OfferStatus @default(PENDING)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  decidedAt DateTime? @map("decided_at")
+
+  decidedByUserId Int?  @map("decided_by_user_id")
+  decidedBy       User? @relation("OfferDecidedBy", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+
+  @@map("order_offers")
+  @@index([orderId], map: "idx_order_offers_order_id")
+  @@index([vendorId], map: "idx_order_offers_vendor_id")
+  @@index([status], map: "idx_order_offers_status")
+  @@index([createdAt], map: "idx_order_offers_created_at")
 }
 
 model OrderStatusHistory {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  status    String
-  changedBy Int
-  createdAt DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  orderId         Int      @map("order_id")
+  status          OrderStatus
+  changedByUserId Int      @map("changed_by_user_id")
+  note            String?
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  order Order @relation(fields: [orderId], references: [id])
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy User  @relation("StatusChangedBy", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@map("order_status_history")
+  @@index([orderId], map: "idx_order_status_history_order_id")
+  @@index([changedByUserId], map: "idx_order_status_history_changed_by")
+  @@index([status], map: "idx_order_status_history_status")
+}
+
+model OrderFile {
+  id               Int      @id @default(autoincrement())
+  orderId          Int      @map("order_id")
+  fileUrl          String   @map("file_url")
+  fileName         String   @map("file_name")
+  fileType         String   @map("file_type")
+  uploadedByUserId Int      @map("uploaded_by_user_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  order      Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation("FileUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@map("order_files")
+  @@index([orderId], map: "idx_order_files_order_id")
+  @@index([uploadedByUserId], map: "idx_order_files_uploaded_by")
+}
+
+model OrderComment {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  userId    Int      @map("user_id")
+  message   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@map("order_comments")
+  @@index([orderId], map: "idx_order_comments_order_id")
+  @@index([userId], map: "idx_order_comments_user_id")
 }
