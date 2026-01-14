@@ -1,6 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+
+console.log('ServiceScalarFieldEnum:', Prisma.ServiceScalarFieldEnum);
+console.log('VendorScalarFieldEnum:', Prisma.VendorScalarFieldEnum);
+console.log('OrderScalarFieldEnum:', Prisma.OrderScalarFieldEnum);
+console.log('UserScalarFieldEnum:', Prisma.UserScalarFieldEnum);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

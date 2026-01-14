@@ -1,10 +1,20 @@
-import { Body, Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseBoolPipe,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { CreateServiceDto } from './dto';
 
 @Controller('services')
 export class ServicesController {
-  constructor(private services: ServicesService) {}
+  constructor(private readonly services: ServicesService) {}
 
   @Post()
   create(@Body() dto: CreateServiceDto) {
@@ -12,12 +22,17 @@ export class ServicesController {
   }
 
   @Get()
-  list(@Query('active') active?: string) {
-    const onlyActive = active === 'true' || active === '1';
-    return this.services.list({ onlyActive });
+  list(
+    @Query('active') active?: string,
+    @Query('category') category?: string,
+  ) {
+    return this.services.list({
+      onlyActive: active === 'true' || active === '1',
+      category,
+    });
   }
 
-  // /services/3/active?value=false
+  // /services/:id/active?value=false
   @Patch(':id/active')
   setActive(
     @Param('id', ParseIntPipe) id: number,

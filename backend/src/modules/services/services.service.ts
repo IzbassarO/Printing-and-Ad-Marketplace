@@ -1,34 +1,81 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class ServicesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  create(dto: { name: string; isActive?: boolean }) {
+  create(dto: {
+    category: string;
+    name: string;
+    description?: string;
+    isActive?: boolean;
+  }) {
+    const category = dto.category.trim();
+    const name = dto.name.trim();
+
+    if (!category) throw new BadRequestException('Category is required');
+    if (!name) throw new BadRequestException('Name is required');
+
     return this.prisma.service.create({
       data: {
-        name: dto.name,
+        category,
+        name,
+        description: dto.description?.trim() || null,
         isActive: dto.isActive ?? true,
+      },
+      select: {
+        id: true,
+        category: true,
+        name: true,
+        description: true,
+        isActive: true,
       },
     });
   }
 
-  list(params?: { onlyActive?: boolean }) {
-    const where = params?.onlyActive ? { isActive: true } : undefined;
+  list(params?: { onlyActive?: boolean; category?: string }) {
+    const where: any = {};
+
+    if (params?.onlyActive) where.isActive = true;
+    if (params?.category) where.category = params.category;
+
     return this.prisma.service.findMany({
-      where,
-      orderBy: { id: 'desc' },
+      where: Object.keys(where).length ? where : undefined,
+      orderBy: [
+        { category: 'asc' },
+        { name: 'asc' },
+      ],
+      select: {
+        id: true,
+        category: true,
+        name: true,
+        description: true,
+        isActive: true,
+      },
     });
   }
 
   async setActive(id: number, isActive: boolean) {
-    const service = await this.prisma.service.findUnique({ where: { id } });
-    if (!service) throw new NotFoundException('Service not found');
+    const exists = await this.prisma.service.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!exists) {
+      throw new NotFoundException('Service not found');
+    }
 
     return this.prisma.service.update({
       where: { id },
       data: { isActive },
+      select: {
+        id: true,
+        category: true,
+        name: true,
+        description: true,
+        isActive: true,
+      },
     });
   }
 }

@@ -1,4 +1,3 @@
-// src/modules/vendors/vendors.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Vendor } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';

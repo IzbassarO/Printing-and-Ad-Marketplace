@@ -1,4 +1,3 @@
-// src/modules/vendors/dto.ts
 import { IsBoolean, IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateVendorDto {
