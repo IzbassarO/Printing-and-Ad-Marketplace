@@ -64,15 +64,35 @@ export class UsersService {
     }
 
     // ✅ safe read (admin/dashboard)
-    list(params?: { role?: UserRole; vendorId?: number; take?: number; skip?: number }) {
+    list(params?: {
+        role?: UserRole;
+        vendorId?: number;
+        take?: number;
+        skip?: number;
+    }) {
+        if (params?.role === UserRole.CLIENT && params?.vendorId != null) {
+            throw new BadRequestException('CLIENT cannot have vendorId');
+        }
+        
+        if (params?.role === UserRole.ADMIN && params?.vendorId != null) {
+            throw new BadRequestException('ADMIN cannot have vendorId');
+        }
+
         const take = Math.min(Math.max(params?.take ?? 50, 1), 200);
         const skip = Math.max(params?.skip ?? 0, 0);
 
+        const where: Prisma.UserWhereInput = {};
+
+        if (params?.role) {
+            where.role = params.role;
+        }
+
+        if (params?.vendorId != null) {
+            where.vendorId = params.vendorId;
+        }
+
         return this.prisma.user.findMany({
-            where: {
-                role: params?.role,
-                vendorId: params?.vendorId,
-            },
+            where,
             select: this.safeSelect,
             orderBy: { createdAt: 'desc' },
             take,

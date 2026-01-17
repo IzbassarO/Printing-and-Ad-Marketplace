@@ -39,6 +39,12 @@ enum OfferStatus {
   CANCELLED
 }
 
+enum CancelledByRole {
+  CLIENT
+  VENDOR
+  ADMIN
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   name         String
@@ -63,6 +69,8 @@ model User {
   comments OrderComment[]
 
   createdAt DateTime @default(now()) @map("created_at")
+
+  cancelledOrders Order[] @relation("OrderCancelledBy")
 
   @@map("users")
   @@index([vendorId], map: "idx_users_vendor_id")
@@ -168,12 +176,22 @@ model Order {
   comments OrderComment[]
   offers  OrderOffer[]
 
+  cancelledAt       DateTime?        @map("cancelled_at")
+  cancelledByUserId Int?             @map("cancelled_by_user_id")
+  cancelledByRole   CancelledByRole? @map("cancelled_by_role")
+  cancelReason      String?          @map("cancel_reason")
+
+  cancelledByUser   User? @relation("OrderCancelledBy", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+
   @@map("orders")
   @@index([userId], map: "idx_orders_user_id")
   @@index([vendorId], map: "idx_orders_vendor_id")
   @@index([serviceId], map: "idx_orders_service_id")
   @@index([status], map: "idx_orders_status")
   @@index([createdAt], map: "idx_orders_created_at")
+  @@index([cancelledByUserId], map: "idx_orders_cancelled_by_user_id")
+  @@index([cancelledByRole], map: "idx_orders_cancelled_by_role")
+  @@index([cancelledAt], map: "idx_orders_cancelled_at")
 }
 
 model OrderOffer {

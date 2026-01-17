@@ -1,12 +1,85 @@
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsInt, IsObject, IsOptional, IsString, Min } from 'class-validator';
-import { OrderStatus } from '@prisma/client';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+  IsUrl,
+} from 'class-validator';
+import { CancelledByRole, OrderStatus } from '@prisma/client';
 
-export class CreateOrderDto {
+export class ListOrdersQueryDto {
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
-  userId!: number;
+  userId?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  vendorId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  serviceId?: number;
+
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  take: number = 20;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  skip: number = 0;
+}
+
+export class AddOrderCommentDto {
+  @IsString()
+  @MaxLength(2000)
+  message!: string;
+}
+
+export class AddOrderFileDto {
+  @IsUrl()
+  fileUrl!: string;
+
+  @IsString()
+  @MaxLength(255)
+  fileName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  fileType?: string;
+}
+
+export class DecideOrderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+}
+
+export class CancelOrderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reason?: string;
+}
+
+export class CreateOrderDto {
   @Type(() => Number)
   @IsInt()
   serviceId!: number;
@@ -39,12 +112,9 @@ export class AssignVendorDto {
   @IsInt()
   vendorId!: number;
 
-  @Type(() => Number)
-  @IsInt()
-  changedByUserId!: number;
-
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   note?: string;
 }
 
@@ -54,9 +124,6 @@ export class ChangeStatusDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   note?: string;
-
-  @Type(() => Number)
-  @IsInt()
-  changedByUserId!: number;
 }

@@ -1,25 +1,34 @@
-import { Body, Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { VendorsService } from './vendors.service';
 import { CreateVendorDto } from './dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('vendors')
 export class VendorsController {
-  constructor(private vendors: VendorsService) {}
+  constructor(private vendors: VendorsService) { }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @Post()
-  // TODO: @UseGuards(JwtAuthGuard, RolesGuard) @Roles(UserRole.ADMIN)
   create(@Body() dto: CreateVendorDto) {
     return this.vendors.create(dto);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @Get()
-  list(@Query('active') active?: string) {
+  list(
+    @Query('active') active?: string,
+  ) {
     const onlyActive = active === 'true' || active === '1';
-    return this.vendors.list({ onlyActive, adminView: false });
+    return this.vendors.list({ onlyActive });
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
   @Patch(':id/active')
-  // TODO: @UseGuards(JwtAuthGuard, RolesGuard) @Roles(UserRole.ADMIN)
   setActive(
     @Param('id', ParseIntPipe) id: number,
     @Query('value', ParseBoolPipe) value: boolean,

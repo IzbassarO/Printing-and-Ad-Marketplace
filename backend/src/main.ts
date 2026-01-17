@@ -1,20 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-
-console.log('ServiceScalarFieldEnum:', Prisma.ServiceScalarFieldEnum);
-console.log('VendorScalarFieldEnum:', Prisma.VendorScalarFieldEnum);
-console.log('OrderScalarFieldEnum:', Prisma.OrderScalarFieldEnum);
-console.log('UserScalarFieldEnum:', Prisma.UserScalarFieldEnum);
-
-console.log('OrderScalarFieldEnum:', Prisma.OrderScalarFieldEnum);
-console.log('Order fields:', Object.keys(Prisma.OrderScalarFieldEnum));
+import cookieParser from 'cookie-parser'; // ✅ ВАЖНО: default import
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableShutdownHooks();
+
+  // ✅ cookieParser должен быть ДО listen
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -25,10 +20,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [
-      'http://localhost:5173', // vite
-      'http://localhost:3000',
-    ],
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
   });
 

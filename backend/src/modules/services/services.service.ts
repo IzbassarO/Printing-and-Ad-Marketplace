@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ServicesService {
@@ -35,7 +36,7 @@ export class ServicesService {
   }
 
   list(params?: { onlyActive?: boolean; category?: string }) {
-    const where: any = {};
+    const where: Prisma.ServiceWhereInput = {};
 
     if (params?.onlyActive) where.isActive = true;
     if (params?.category) where.category = params.category;

@@ -1,8 +1,11 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserRole } from '@prisma/client';
 import { IsEnum, IsInt, IsOptional, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 class ListUsersQuery {
   @IsOptional()
@@ -28,11 +31,8 @@ class ListUsersQuery {
   skip?: number;
 }
 
-/**
- * NOTE:
- * Эти endpoints в MVP обычно должны быть ADMIN-only (позже добавим Guards).
- * Сейчас тут только безопасные поля (passwordHash никогда не возвращаем).
- */
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller('users')
 export class UsersController {
   constructor(private users: UsersService) {}

@@ -3,13 +3,6 @@ import { Prisma, Vendor } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVendorDto } from './dto';
 
-const vendorPublicSelect = Prisma.validator<Prisma.VendorSelect>()({
-  id: true,
-  name: true,
-  isActive: true,
-  createdAt: true,
-});
-
 const vendorAdminSelect = Prisma.validator<Prisma.VendorSelect>()({
   id: true,
   name: true,
@@ -22,7 +15,7 @@ const vendorAdminSelect = Prisma.validator<Prisma.VendorSelect>()({
 
 @Injectable()
 export class VendorsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(dto: CreateVendorDto) {
     return this.prisma.vendor.create({
@@ -33,19 +26,18 @@ export class VendorsService {
         contacts: dto.contacts as Prisma.JsonObject,
         isActive: dto.isActive ?? true,
       },
-      select: vendorAdminSelect, // создание обычно только админ
+      select: vendorAdminSelect,
     });
   }
 
-  list(params?: { onlyActive?: boolean; adminView?: boolean }) {
-    const where: Prisma.VendorWhereInput | undefined = params?.onlyActive
-      ? { isActive: true }
-      : undefined;
+  list(params?: { onlyActive?: boolean }) {
+    const where: Prisma.VendorWhereInput | undefined =
+      params?.onlyActive ? { isActive: true } : undefined;
 
     return this.prisma.vendor.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      select: params?.adminView ? vendorAdminSelect : vendorPublicSelect,
+      select: vendorAdminSelect,
     });
   }
 
